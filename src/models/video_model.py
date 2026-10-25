@@ -250,6 +250,9 @@ class VideoClassifier(nn.Module):
         torch.Tensor
             Logits of shape (B, 1).
         """
+        if x.dim() == 4:
+            x = x.unsqueeze(1)  # (B, 1, C, H, W)
+
         B, T, C, H, W = x.shape
         # Flatten B and T to extract frame features
         flat_frames = x.view(B * T, C, H, W)
