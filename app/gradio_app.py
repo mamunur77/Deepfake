@@ -1,43 +1,22 @@
 #!/usr/bin/env python3
 """
-app/gradio_app.py  ·  Gradio web UI for deepfake inference.
+app/gradio_app.py  ·  CLI entrypoint delegating to app.app.
 ===========================================================
-Upload a single image or short video → get real/fake prediction
-with Grad-CAM overlay.
-
 Usage:
-    python app/gradio_app.py --config configs/default.yaml --checkpoint outputs/best.pt
-
-TODO (Step 7):
-    - Load model from checkpoint.
-    - Build Gradio Blocks interface with:
-        • Image tab   → predict + Grad-CAM.
-        • Video tab   → per-frame extraction → aggregate prediction.
-    - Launch on localhost (share=False by default).
+    python app/gradio_app.py --checkpoint outputs/dinov2_frozen/best_model.pt
 """
 
-import argparse
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# Ensure project root is in sys.path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.utils.config import load_config, add_config_args
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Gradio deepfake detection app")
-    parser = add_config_args(parser)
-    parser.add_argument(
-        "--checkpoint", type=str, required=True,
-        help="Path to a saved model checkpoint (.pt).",
-    )
-    args = parser.parse_args()
-
-    cfg = load_config(args.config)
-    print("[gradio_app] Scaffold OK – Gradio interface not yet implemented.")
-    # TODO: build and launch Gradio UI
-
+from app.app import main
 
 if __name__ == "__main__":
     main()

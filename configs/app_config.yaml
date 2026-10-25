@@ -1,0 +1,27 @@
+# ═══════════════════════════════════════════════════════════════════
+# Hugging Face Spaces & Web Application Configuration
+# ═══════════════════════════════════════════════════════════════════
+
+app:
+  title: "Deepfake Detection · Vision Transformers & DINOv2"
+  description: "Detecting manipulated faces and deepfakes across images and video with Grad-CAM & Attention Rollout explainability."
+  default_checkpoint: "outputs/dinov2_frozen/best_model.pt"
+  fallback_checkpoint: "outputs/deit_small_finetune/best_model.pt"
+  device: "cpu"
+
+model:
+  backbone: "dinov2_vits14"
+  pretrained: true
+  mode: "frozen"
+  num_classes: 1
+  drop_rate: 0.0
+
+data:
+  img_size: 224
+  mode: "image"
+
+inference:
+  threshold: 0.5
+  video_sample_frames: 16
+  mtcnn_margin_pct: 20
+  gradcam_target_category: 1

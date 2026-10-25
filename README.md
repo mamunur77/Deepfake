@@ -1,3 +1,15 @@
+---
+title: Deepfake ViT & DINOv2 Detector
+emoji: 🛡️
+colorFrom: indigo
+colorTo: slate
+sdk: gradio
+sdk_version: 6.30.0
+app_file: app/app.py
+pinned: false
+license: mit
+---
+
 # Deepfake Image and Video Detection Using Vision Transformers
 ## A Comparative Study of Supervised and Self-Supervised Pretraining
 
