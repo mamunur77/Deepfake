@@ -22,10 +22,11 @@ data:
 
 # ── Model ────────────────────────────────────────────────────────
 model:
-  backbone: "vit_base_patch16_224"  # any timm model name
+  backbone: "vit_base_patch16_224"  # vit_base_patch16_224 | deit_small_patch16_224 | dinov2_vits14 | dinov2_vitb14 | efficientnet_b0
   pretrained: true
-  pretraining: "supervised"         # supervised | dino | mae
-  num_classes: 2                    # real vs. fake
+  mode: "finetune"                  # frozen | finetune | partial
+  unfreeze_blocks: 2                # number of trailing blocks to unfreeze in partial mode
+  num_classes: 1                    # single logit for real/fake
   drop_rate: 0.1
 
 # ── Training ─────────────────────────────────────────────────────
