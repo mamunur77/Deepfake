@@ -1,0 +1,62 @@
+# ═══════════════════════════════════════════════════════════════════
+# Default configuration for Deepfake ViT Detection
+# ═══════════════════════════════════════════════════════════════════
+
+# ── Experiment ───────────────────────────────────────────────────
+experiment:
+  name: "baseline_vit_b16_supervised"
+  seed: 42
+  output_dir: "outputs"
+
+# ── Data ─────────────────────────────────────────────────────────
+data:
+  dataset: "faceforensics"          # faceforensics | celeb_df | dfdc
+  root_dir: "data/FaceForensics"
+  face_dir: "data/faces"            # extracted & aligned faces
+  img_size: 224
+  num_workers: 4
+  split_ratio:                      # train / val / test
+    train: 0.7
+    val:   0.15
+    test:  0.15
+
+# ── Model ────────────────────────────────────────────────────────
+model:
+  backbone: "vit_base_patch16_224"  # any timm model name
+  pretrained: true
+  pretraining: "supervised"         # supervised | dino | mae
+  num_classes: 2                    # real vs. fake
+  drop_rate: 0.1
+
+# ── Training ─────────────────────────────────────────────────────
+training:
+  epochs: 30
+  batch_size: 32
+  lr: 3.0e-5
+  weight_decay: 1.0e-4
+  scheduler: "cosine"               # cosine | step
+  warmup_epochs: 3
+  early_stopping_patience: 5
+  mixed_precision: true              # fp16 on GPU
+
+# ── Evaluation ───────────────────────────────────────────────────
+evaluation:
+  metrics:
+    - accuracy
+    - auc
+    - f1
+    - precision
+    - recall
+  conf_matrix: true
+
+# ── Explainability ───────────────────────────────────────────────
+explain:
+  method: "gradcam"
+  target_layer: null                 # auto-detected if null
+
+# ── Debug mode (local laptop safeguard) ──────────────────────────
+debug:
+  enabled: false
+  max_samples: 50
+  epochs: 1
+  batch_size: 4
