@@ -1,0 +1,42 @@
+# ═══════════════════════════════════════════════════════════════════
+# Temporal Transformer on Cached DINOv2 Embeddings (Fast & Cheap)
+# ═══════════════════════════════════════════════════════════════════
+
+experiment:
+  name: "video_dinov2_cached"
+  seed: 42
+  output_dir: "outputs"
+
+data:
+  dataset: "faceforensics"
+  mode: "cached_embedding"           # train directly on precomputed .npy embeddings
+  embedding_dir: "data/embeddings/dinov2_vits14"
+  num_frames: 16
+  num_workers: 2
+
+model:
+  type: "video"
+  mode: "cached_embedding"          # standalone TemporalHead
+  backbone: "dinov2_vits14"
+  num_heads: 6                      # 384 embed_dim / 6 heads = 64 head_dim
+  num_layers: 2                     # 2-layer TransformerEncoder
+  drop_rate: 0.1
+  max_frames: 64
+
+training:
+  epochs: 25
+  batch_size: 16
+  lr: 3.0e-4                        # fast convergence on temporal head
+  weight_decay: 1.0e-4
+  scheduler: "cosine"
+  warmup_epochs: 2
+  early_stopping_patience: 5
+  mixed_precision: true
+  gradient_accumulation_steps: 1
+  max_grad_norm: 1.0
+
+debug:
+  enabled: false
+  max_samples: 50
+  epochs: 1
+  batch_size: 4

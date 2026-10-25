@@ -153,8 +153,13 @@ class Trainer:
             num_frames=num_frames,
         )
 
-        # Build model
-        self.model = build_model(cfg=self.cfg).to(self.device)
+        # Build model (image or video)
+        model_type = getattr(getattr(cfg, "model", None), "type", "image")
+        if model_type == "video" or mode in {"video", "cached_embedding"}:
+            from src.models.video_model import build_video_model
+            self.model = build_video_model(cfg=self.cfg).to(self.device)
+        else:
+            self.model = build_model(cfg=self.cfg).to(self.device)
 
         # Optional gradient checkpointing
         if getattr(t_cfg, "gradient_checkpointing", False):

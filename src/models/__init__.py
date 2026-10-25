@@ -11,6 +11,12 @@ from .factory import (
     count_parameters,
     print_parameter_summary,
 )
+from .video_model import (
+    TemporalHead,
+    VideoClassifier,
+    build_feature_extractor,
+    build_video_model,
+)
 
 __all__ = [
     "DINOV2_MODELS",
@@ -20,4 +26,8 @@ __all__ = [
     "build_model",
     "count_parameters",
     "print_parameter_summary",
+    "TemporalHead",
+    "VideoClassifier",
+    "build_feature_extractor",
+    "build_video_model",
 ]

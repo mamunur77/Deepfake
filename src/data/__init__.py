@@ -1,8 +1,8 @@
 """
-src.data  ·  Data loading, face extraction, splits, and augmentation.
+src.data  ·  Data loading, face extraction, splits, cached embeddings, and transforms.
 """
 
-from .dataset import DeepfakeDataset, get_dataloaders
+from .dataset import CachedEmbeddingDataset, DeepfakeDataset, get_dataloaders
 from .face_extract import (
     create_mtcnn,
     detect_and_crop_face,
@@ -27,6 +27,7 @@ from .transforms import (
 
 __all__ = [
     "DeepfakeDataset",
+    "CachedEmbeddingDataset",
     "get_dataloaders",
     "create_mtcnn",
     "detect_and_crop_face",

@@ -1,0 +1,44 @@
+# ═══════════════════════════════════════════════════════════════════
+# End-to-End ViT-Base with 2-Layer Temporal Transformer Head
+# ═══════════════════════════════════════════════════════════════════
+
+experiment:
+  name: "video_vit_temporal"
+  seed: 42
+  output_dir: "outputs"
+
+data:
+  dataset: "faceforensics"
+  split_dir: "data/splits"
+  mode: "video"                     # raw video frames (B, T, C, H, W)
+  num_frames: 8                     # T frames per video
+  img_size: 224
+  num_workers: 2
+
+model:
+  type: "video"
+  mode: "end_to_end"                # backbone + TemporalHead
+  backbone: "vit_base_patch16_224"
+  pretrained: true
+  num_heads: 8                      # 768 / 8 = 96 head_dim
+  num_layers: 2                     # 2-layer TransformerEncoder
+  drop_rate: 0.1
+  max_frames: 64
+
+training:
+  epochs: 20
+  batch_size: 4                     # small batch size due to 4D video tensors
+  lr: 2.0e-5
+  weight_decay: 1.0e-4
+  scheduler: "cosine"
+  warmup_epochs: 2
+  early_stopping_patience: 5
+  mixed_precision: true
+  gradient_accumulation_steps: 4    # effective batch = 16
+  max_grad_norm: 1.0
+
+debug:
+  enabled: false
+  max_samples: 50
+  epochs: 1
+  batch_size: 2
