@@ -1,0 +1,41 @@
+# ═══════════════════════════════════════════════════════════════════
+# ViT-Base (Patch 16, 224x224) Full Fine-Tuning
+# ═══════════════════════════════════════════════════════════════════
+
+experiment:
+  name: "vit_b16_finetune"
+  seed: 42
+  output_dir: "outputs"
+
+data:
+  dataset: "faceforensics"
+  split_dir: "data/splits"
+  mode: "image"                     # image | video
+  img_size: 224
+  num_workers: 4
+
+model:
+  backbone: "vit_base_patch16_224"
+  pretrained: true
+  mode: "finetune"                  # all layers trainable
+  num_classes: 1                    # single logit for real/fake
+  drop_rate: 0.1
+
+training:
+  epochs: 30
+  batch_size: 32
+  lr: 3.0e-5
+  weight_decay: 1.0e-4
+  scheduler: "cosine"
+  warmup_epochs: 3
+  early_stopping_patience: 5
+  mixed_precision: true
+  gradient_accumulation_steps: 1
+  max_grad_norm: 1.0
+  gradient_checkpointing: false
+
+debug:
+  enabled: false
+  max_samples: 50
+  epochs: 1
+  batch_size: 4

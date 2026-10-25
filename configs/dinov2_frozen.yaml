@@ -1,0 +1,41 @@
+# ═══════════════════════════════════════════════════════════════════
+# DINOv2-ViT-S/14 Linear Probe (Frozen Backbone)
+# ═══════════════════════════════════════════════════════════════════
+
+experiment:
+  name: "dinov2_frozen"
+  seed: 42
+  output_dir: "outputs"
+
+data:
+  dataset: "faceforensics"
+  split_dir: "data/splits"
+  mode: "image"
+  img_size: 224
+  num_workers: 4
+
+model:
+  backbone: "dinov2_vits14"
+  pretrained: true
+  mode: "frozen"                    # linear probe: backbone frozen, train head only
+  num_classes: 1
+  drop_rate: 0.1
+
+training:
+  epochs: 20
+  batch_size: 64
+  lr: 1.0e-3                        # higher learning rate for linear probe
+  weight_decay: 1.0e-4
+  scheduler: "cosine"
+  warmup_epochs: 2
+  early_stopping_patience: 5
+  mixed_precision: true
+  gradient_accumulation_steps: 1
+  max_grad_norm: 1.0
+  gradient_checkpointing: false
+
+debug:
+  enabled: false
+  max_samples: 50
+  epochs: 1
+  batch_size: 4

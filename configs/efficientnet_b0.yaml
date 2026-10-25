@@ -1,0 +1,41 @@
+# ═══════════════════════════════════════════════════════════════════
+# EfficientNet-B0 CNN Baseline Full Fine-Tuning
+# ═══════════════════════════════════════════════════════════════════
+
+experiment:
+  name: "efficientnet_b0"
+  seed: 42
+  output_dir: "outputs"
+
+data:
+  dataset: "faceforensics"
+  split_dir: "data/splits"
+  mode: "image"
+  img_size: 224
+  num_workers: 4
+
+model:
+  backbone: "efficientnet_b0"
+  pretrained: true
+  mode: "finetune"
+  num_classes: 1
+  drop_rate: 0.2
+
+training:
+  epochs: 30
+  batch_size: 32
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  scheduler: "cosine"
+  warmup_epochs: 3
+  early_stopping_patience: 5
+  mixed_precision: true
+  gradient_accumulation_steps: 1
+  max_grad_norm: 1.0
+  gradient_checkpointing: false
+
+debug:
+  enabled: false
+  max_samples: 50
+  epochs: 1
+  batch_size: 4

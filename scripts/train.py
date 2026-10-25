@@ -1,41 +1,34 @@
 #!/usr/bin/env python3
 """
-scripts/train.py  ·  Train a ViT model for deepfake detection.
-==============================================================
-Loads config → builds data loaders → builds model → trains.
-Enforces the Kaggle safeguard before starting.
+scripts/train.py  ·  CLI Runner for Deepfake ViT Training.
+=========================================================
+Loads config → builds data loaders → builds model → trains with AMP & Cosine LR.
+Saves model.state_dict() checkpoints and logs to CSV + TensorBoard.
 
 Usage:
-    python scripts/train.py --config configs/default.yaml
-    python scripts/train.py --config configs/default.yaml --debug
+    python scripts/train.py --config configs/vit_b16_finetune.yaml --debug
+    python scripts/train.py --config configs/vit_b16_finetune.yaml
 """
+
+from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
 
+# Ensure project root is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.utils.config import load_config, apply_debug_overrides, add_config_args
-from src.utils.seed import seed_everything
+from src.training.train import train_from_config
+from src.utils.config import add_config_args
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Training pipeline")
+    parser = argparse.ArgumentParser(description="Deepfake ViT Training CLI")
     parser = add_config_args(parser)
     args = parser.parse_args()
 
-    cfg = load_config(args.config)
-    if args.debug:
-        cfg.debug.enabled = True
-    cfg = apply_debug_overrides(cfg)
-    seed_everything(cfg.experiment.seed)
-
-    # TODO: build dataloaders  (src.data.dataset)
-    # TODO: check_environment(len(train_dataset))   ← Kaggle safeguard
-    # TODO: build model        (src.models.factory)
-    # TODO: train              (src.training.trainer)
-    print("[train] Scaffold OK – training logic not yet implemented.")
+    train_from_config(args.config, debug=args.debug)
 
 
 if __name__ == "__main__":
