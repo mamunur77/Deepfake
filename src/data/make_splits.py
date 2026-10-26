@@ -267,12 +267,17 @@ def compute_class_weights(
 def create_and_save_splits(
     data_dir: str | Path = "data/processed",
     output_dir: str | Path = "data/splits",
-    split_ratios: tuple[float, float, float] = (0.70, 0.15, 0.15),
+    split_ratios: tuple[float, float, float] | None = None,
+    train_ratio: float = 0.70,
+    val_ratio: float = 0.15,
+    test_ratio: float = 0.15,
     seed: int = 42,
 ) -> dict[str, int]:
     """
     Main orchestrator: scan data, split by video_id, compute weights, and save.
     """
+    if split_ratios is None:
+        split_ratios = (train_ratio, val_ratio, test_ratio)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
