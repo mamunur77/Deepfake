@@ -30,6 +30,7 @@ Thumbs.db
 # ── Jupyter / Kaggle ─────────────────────────────────────────────
 .ipynb_checkpoints/
 *.ipynb
+!notebooks/*.ipynb
 
 # ── Misc ─────────────────────────────────────────────────────────
 *.log
