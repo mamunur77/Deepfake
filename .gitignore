@@ -31,6 +31,7 @@ Thumbs.db
 .ipynb_checkpoints/
 *.ipynb
 !notebooks/*.ipynb
+!deepfake.ipynb
 
 # ── Misc ─────────────────────────────────────────────────────────
 *.log
