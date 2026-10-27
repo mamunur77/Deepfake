@@ -280,8 +280,36 @@ def get_dataloaders(
         test_csv = split_dir / "test.csv"
 
         for p in (train_csv, val_csv, test_csv):
-            if not p.exists():
-                raise FileNotFoundError(f"Missing split CSV at {p}. Run src/data/make_splits.py first.")
+            if not p.exists() or p.stat().st_size < 10:
+                # Check alternative candidate directories
+                candidate_dirs = [
+                    Path("/kaggle/working/deepfake-vit/data/splits"),
+                    Path("/kaggle/working/data/splits"),
+                    Path("data/splits"),
+                ]
+                found = False
+                for c_dir in candidate_dirs:
+                    cand_train = c_dir / "train.csv"
+                    if cand_train.exists() and cand_train.stat().st_size > 50:
+                        split_dir = c_dir
+                        train_csv = split_dir / "train.csv"
+                        val_csv = split_dir / "val.csv"
+                        test_csv = split_dir / "test.csv"
+                        found = True
+                        break
+
+                if not found:
+                    try:
+                        from src.data.build_ai_face_splits import auto_build_splits
+                        auto_build_splits(out_dir=str(split_dir))
+                        train_csv = split_dir / "train.csv"
+                        val_csv = split_dir / "val.csv"
+                        test_csv = split_dir / "test.csv"
+                    except Exception as exc:
+                        raise FileNotFoundError(
+                            f"Missing or empty split CSV at {p}, and auto-build failed: {exc}"
+                        )
+                break
 
         train_df = pd.read_csv(train_csv)
         val_df = pd.read_csv(val_csv)

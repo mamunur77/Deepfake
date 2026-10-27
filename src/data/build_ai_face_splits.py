@@ -14,6 +14,20 @@ from pathlib import Path
 import pandas as pd
 
 
+def _save_df(df: pd.DataFrame, out_dir: str, split_name: str) -> None:
+    os.makedirs(out_dir, exist_ok=True)
+    out_csv = os.path.join(out_dir, f"{split_name}.csv")
+    df.to_csv(out_csv, index=False)
+    print(f"  Saved {out_csv}: {len(df):,} items (Real: {(df['label'] == 0).sum():,}, Fake: {(df['label'] == 1).sum():,})")
+
+    # Mirror to alternate Kaggle paths so relative and absolute lookups never fail
+    for alt_parent in ["/kaggle/working/deepfake-vit", "/kaggle/working"]:
+        if os.path.exists(alt_parent):
+            alt_dir = os.path.join(alt_parent, "data", "splits")
+            os.makedirs(alt_dir, exist_ok=True)
+            df.to_csv(os.path.join(alt_dir, f"{split_name}.csv"), index=False)
+
+
 def auto_build_splits(
     input_root: str = "/kaggle/input",
     out_dir: str = "data/splits",
@@ -73,9 +87,7 @@ def auto_build_splits(
                 rows.append({"frame_path": f, "video_id": Path(f).stem, "label": 1, "label_name": "fake"})
 
             df = pd.DataFrame(rows).sample(frac=1.0, random_state=seed).reset_index(drop=True)
-            out_csv = os.path.join(out_dir, f"{split_name}.csv")
-            df.to_csv(out_csv, index=False)
-            print(f"  Saved {out_csv}: {len(df):,} items (Real: {(df['label'] == 0).sum():,}, Fake: {(df['label'] == 1).sum():,})")
+            _save_df(df, out_dir, split_name)
 
     else:
         print("[splits] Flat real/fake structure detected — creating splits automatically...")
@@ -110,9 +122,7 @@ def auto_build_splits(
                 rows.append({"frame_path": f, "video_id": Path(f).stem, "label": 1, "label_name": "fake"})
 
             df = pd.DataFrame(rows).sample(frac=1.0, random_state=seed).reset_index(drop=True)
-            out_csv = os.path.join(out_dir, f"{split_name}.csv")
-            df.to_csv(out_csv, index=False)
-            print(f"  Saved {out_csv}: {len(df):,} items (Real: {(df['label'] == 0).sum():,}, Fake: {(df['label'] == 1).sum():,})")
+            _save_df(df, out_dir, split_name)
 
     print("\n[splits] Done! Splits ready for training.")
 
