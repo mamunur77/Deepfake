@@ -89,6 +89,16 @@ def _load_eval_dataset_and_loader(
 
     # Branch A: Cached embedding mode
     if mode in {"cached_embedding", "embedding", "frozen_embeddings"}:
+        if "embedding_path" not in df.columns:
+            backbone_name = getattr(getattr(cfg, "model", None), "backbone", "dinov2_vits14")
+            emb_dir = Path(getattr(getattr(cfg, "data", None), "embedding_dir", f"data/embeddings/{backbone_name}"))
+            emb_test_csv = emb_dir / test_csv_path.name
+            if emb_test_csv.exists():
+                df = pd.read_csv(emb_test_csv)
+            else:
+                matches = list(Path("data/embeddings").glob(f"**/{test_csv_path.name}"))
+                if matches:
+                    df = pd.read_csv(matches[0])
         dataset = CachedEmbeddingDataset(df, num_frames=num_frames, is_train=False)
     # Branch B: Raw frames (image or video mode)
     else:
