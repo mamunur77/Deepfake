@@ -82,9 +82,11 @@ class AppState:
         if checkpoint_path:
             cand_paths.append(Path(checkpoint_path))
         cand_paths.extend([
+            PROJECT_ROOT / "outputs" / "dinov2_partial" / "best_model.pt",
             PROJECT_ROOT / "outputs" / "dinov2_frozen" / "best_model.pt",
             PROJECT_ROOT / "outputs" / "deit_small_finetune" / "best_model.pt",
             PROJECT_ROOT / "outputs" / "efficientnet_b0" / "best_model.pt",
+            PROJECT_ROOT / "outputs" / "video_dinov2_cached" / "best_model.pt",
             PROJECT_ROOT / "outputs" / "video_vit_temporal" / "best_model.pt",
         ])
 
@@ -456,12 +458,13 @@ def build_gradio_app() -> gr.Blocks:
                 model_dropdown = gr.Dropdown(
                     label="Backbone Architecture",
                     choices=[
+                        "dinov2_vitb14",
                         "dinov2_vits14",
                         "deit_small_patch16_224",
                         "vit_base_patch16_224",
                         "efficientnet_b0",
                     ],
-                    value="dinov2_vits14",
+                    value="dinov2_vitb14",
                     interactive=True,
                 )
                 threshold_slider = gr.Slider(
