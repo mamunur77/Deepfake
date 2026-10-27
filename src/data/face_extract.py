@@ -30,9 +30,13 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from facenet_pytorch import MTCNN
 from PIL import Image
 from tqdm import tqdm
+
+try:
+    from facenet_pytorch import MTCNN
+except ImportError:
+    MTCNN = None
 
 __all__ = [
     "create_mtcnn",
@@ -67,6 +71,10 @@ def create_mtcnn(device: str = "cpu") -> MTCNN:
     -------
     MTCNN
     """
+    if MTCNN is None:
+        raise ImportError(
+            "facenet_pytorch is not installed. Run `pip install facenet-pytorch --no-deps` to use MTCNN."
+        )
     return MTCNN(
         image_size=160,       # internal detection size
         margin=0,             # we add our own margin later
