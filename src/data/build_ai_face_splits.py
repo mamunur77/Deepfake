@@ -17,10 +17,14 @@ import pandas as pd
 def _save_df(df: pd.DataFrame, out_dir: str, split_name: str) -> None:
     os.makedirs(out_dir, exist_ok=True)
     out_csv = os.path.join(out_dir, f"{split_name}.csv")
+    if df.empty or "label" not in df.columns:
+        print(f"  [WARNING] No data found for split '{split_name}'")
+        df = pd.DataFrame(columns=["frame_path", "video_id", "label", "label_name"])
     df.to_csv(out_csv, index=False)
-    print(f"  Saved {out_csv}: {len(df):,} items (Real: {(df['label'] == 0).sum():,}, Fake: {(df['label'] == 1).sum():,})")
+    real_cnt = (df["label"] == 0).sum() if not df.empty else 0
+    fake_cnt = (df["label"] == 1).sum() if not df.empty else 0
+    print(f"  Saved {out_csv}: {len(df):,} items (Real: {real_cnt:,}, Fake: {fake_cnt:,})")
 
-    # Mirror to alternate Kaggle paths so relative and absolute lookups never fail
     for alt_parent in ["/kaggle/working/deepfake-vit", "/kaggle/working"]:
         if os.path.exists(alt_parent):
             alt_dir = os.path.join(alt_parent, "data", "splits")
@@ -61,15 +65,24 @@ def auto_build_splits(
         )
 
     os.makedirs(out_dir, exist_ok=True)
-    has_splits = any("train" in r.lower() for r in real_dirs)
 
-    if has_splits:
-        print("[splits] Standard train/valid/test structure detected!")
+    # Check if dedicated train AND (val or test) folders exist
+    has_explicit_splits = (
+        any("train" in r.lower() for r in real_dirs)
+        and (
+            any("val" in r.lower() or "valid" in r.lower() for r in real_dirs)
+            or any("test" in r.lower() for r in real_dirs)
+        )
+    )
+
+    if has_explicit_splits:
+        print("[splits] Pre-partitioned train/val/test folders detected!")
         split_configs = [
             ("train", ["train"], train_per_class),
             ("val", ["val", "valid"], val_per_class),
             ("test", ["test"], test_per_class),
         ]
+        valid_exts = {".jpg", ".jpeg", ".png", ".webp"}
         for split_name, keywords, n_samples in split_configs:
             r_dir = next((d for d in real_dirs if any(k in d.lower() for k in keywords)), None)
             f_dir = next((d for d in fake_dirs if any(k in d.lower() for k in keywords)), None)
@@ -77,7 +90,6 @@ def auto_build_splits(
             r_files = glob.glob(os.path.join(r_dir, "*.*")) if r_dir else []
             f_files = glob.glob(os.path.join(f_dir, "*.*")) if f_dir else []
 
-            valid_exts = {".jpg", ".jpeg", ".png", ".webp"}
             r_files = [f for f in r_files if Path(f).suffix.lower() in valid_exts][:n_samples]
             f_files = [f for f in f_files if Path(f).suffix.lower() in valid_exts][:n_samples]
 
@@ -87,11 +99,13 @@ def auto_build_splits(
             for f in f_files:
                 rows.append({"frame_path": f, "video_id": Path(f).stem, "label": 1, "label_name": "fake"})
 
-            df = pd.DataFrame(rows).sample(frac=1.0, random_state=seed).reset_index(drop=True)
+            df = pd.DataFrame(rows)
+            if not df.empty:
+                df = df.sample(frac=1.0, random_state=seed).reset_index(drop=True)
             _save_df(df, out_dir, split_name)
 
     else:
-        print("[splits] Flat real/fake structure detected — creating splits automatically...")
+        print("[splits] Gathering all images and creating balanced 70% / 15% / 15% splits...")
         all_real: list[str] = []
         all_fake: list[str] = []
         valid_exts = {".jpg", ".jpeg", ".png", ".webp"}
@@ -101,28 +115,43 @@ def auto_build_splits(
         for fd in fake_dirs:
             all_fake.extend([f for f in glob.glob(os.path.join(fd, "*.*")) if Path(f).suffix.lower() in valid_exts])
 
+        # Remove duplicate paths if any
+        all_real = sorted(list(set(all_real)))
+        all_fake = sorted(list(set(all_fake)))
+
         random.shuffle(all_real)
         random.shuffle(all_fake)
 
-        total_train = train_per_class
-        total_val = val_per_class
-        total_test = test_per_class
+        print(f"[splits] Total unique images collected: {len(all_real):,} Real, {len(all_fake):,} Fake")
 
-        slices = [
-            ("train", 0, total_train),
-            ("val", total_train, total_train + total_val),
-            ("test", total_train + total_val, total_train + total_val + total_test),
+        n_r = len(all_real)
+        n_f = len(all_fake)
+
+        n_r_train = min(train_per_class, max(1, int(n_r * 0.70)))
+        n_r_val = min(val_per_class, max(1, int(n_r * 0.15)))
+        n_r_test = min(test_per_class, max(1, n_r - n_r_train - n_r_val))
+
+        n_f_train = min(train_per_class, max(1, int(n_f * 0.70)))
+        n_f_val = min(val_per_class, max(1, int(n_f * 0.15)))
+        n_f_test = min(test_per_class, max(1, n_f - n_f_train - n_f_val))
+
+        splits_data = [
+            ("train", all_real[:n_r_train], all_fake[:n_f_train]),
+            ("val", all_real[n_r_train:n_r_train + n_r_val], all_fake[n_f_train:n_f_train + n_f_val]),
+            ("test", all_real[n_r_train + n_r_val:n_r_train + n_r_val + n_r_test],
+                     all_fake[n_f_train + n_f_val:n_f_train + n_f_val + n_f_test]),
         ]
-        for split_name, start, end in slices:
-            r_sub = all_real[start:end]
-            f_sub = all_fake[start:end]
+
+        for split_name, r_sub, f_sub in splits_data:
             rows = []
             for f in r_sub:
                 rows.append({"frame_path": f, "video_id": Path(f).stem, "label": 0, "label_name": "real"})
             for f in f_sub:
                 rows.append({"frame_path": f, "video_id": Path(f).stem, "label": 1, "label_name": "fake"})
 
-            df = pd.DataFrame(rows).sample(frac=1.0, random_state=seed).reset_index(drop=True)
+            df = pd.DataFrame(rows)
+            if not df.empty:
+                df = df.sample(frac=1.0, random_state=seed).reset_index(drop=True)
             _save_df(df, out_dir, split_name)
 
     print("\n[splits] Done! Splits ready for training.")
