@@ -114,6 +114,7 @@ class AppState:
             model = build_video_model(cfg=cfg).to(self.device)
         else:
             model = build_model(
+                cfg=cfg,
                 backbone=bb,
                 pretrained=True,
                 mode=getattr(getattr(cfg, "model", None), "mode", "finetune"),
@@ -490,6 +491,18 @@ def build_gradio_app() -> gr.Blocks:
                         sources=["upload", "clipboard", "webcam"],
                     )
                     image_analyze_btn = gr.Button("🔍 Analyze Image", variant="primary", size="lg")
+
+                    # Curated Example Gallery for Instant Demo Testing
+                    demo_samples_dir = PROJECT_ROOT / "app" / "demo_samples"
+                    if demo_samples_dir.exists():
+                        sample_files = [str(p) for p in sorted(demo_samples_dir.glob("*.jpg"))]
+                        if sample_files:
+                            gr.Examples(
+                                examples=sample_files,
+                                inputs=image_input,
+                                label="💡 Click a Sample to Test Instantly",
+                                examples_per_page=4,
+                            )
 
                 with gr.Column(scale=7):
                     image_verdict_box = gr.HTML(label="Verdict")

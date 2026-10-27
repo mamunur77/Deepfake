@@ -44,9 +44,10 @@ def auto_build_splits(
 
     for root, dirs, _ in os.walk(input_root):
         for d in dirs:
-            if d.lower() == "real":
+            d_l = d.lower()
+            if "real" in d_l and "fake" not in d_l:
                 real_dirs.append(os.path.join(root, d))
-            elif d.lower() == "fake":
+            elif "fake" in d_l:
                 fake_dirs.append(os.path.join(root, d))
 
     print(f"[splits] Found {len(real_dirs)} 'real' folders and {len(fake_dirs)} 'fake' folders.")
