@@ -1,0 +1,17 @@
+services:
+  deepfake-vit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: deepfake-vit:latest
+    container_name: deepfake-vit-app
+    ports:
+      - "7860:7860"
+    volumes:
+      # Mount outputs directory so local trained weights are loaded inside the container
+      - ./outputs:/app/outputs:ro
+      - ./configs:/app/configs:ro
+    environment:
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - GRADIO_SERVER_PORT=7860
+    restart: unless-stopped
