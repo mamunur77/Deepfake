@@ -24,8 +24,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
-# Install PyTorch CPU directly with generous timeout
-RUN pip install --no-cache-dir torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cpu
+# Install PyTorch CPU using --extra-index-url so standard build tools (flit_core, etc.) resolve from PyPI
+RUN pip install --no-cache-dir torch==2.1.2 torchvision==0.16.2 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Install facenet-pytorch with --no-deps, then remaining requirements
 COPY requirements.txt .
