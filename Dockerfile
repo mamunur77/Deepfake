@@ -5,6 +5,7 @@ FROM python:3.10-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
+    PIP_DEFAULT_TIMEOUT=1000 \
     GRADIO_SERVER_NAME="0.0.0.0" \
     GRADIO_SERVER_PORT=7860 \
     TORCH_HOME=/app/.cache/torch
@@ -23,14 +24,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
-# Upgrade pip and install PyTorch CPU
-RUN pip install --upgrade pip && \
-    pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cpu
+# Install PyTorch CPU directly with generous timeout
+RUN pip install --no-cache-dir torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cpu
 
-# Install facenet-pytorch with --no-deps first, then remaining requirements
+# Install facenet-pytorch with --no-deps, then remaining requirements
 COPY requirements.txt .
-RUN pip install facenet-pytorch==2.5.3 --no-deps && \
-    pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir facenet-pytorch==2.5.3 --no-deps && \
+    pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Copy application codebase
 COPY src/ /app/src/
