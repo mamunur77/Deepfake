@@ -23,16 +23,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
-# Install PyTorch CPU first for compact image footprint
+# Upgrade pip and install PyTorch CPU
 RUN pip install --upgrade pip && \
     pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cpu
 
-# Copy and install Python dependencies
+# Install facenet-pytorch with --no-deps first, then remaining requirements
 COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-# Pre-cache DINOv2 from torch hub so the container starts immediately offline
-RUN python -c "import torch; torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14', pretrained=True)"
+RUN pip install facenet-pytorch==2.5.3 --no-deps && \
+    pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Copy application codebase
 COPY src/ /app/src/
@@ -40,8 +38,11 @@ COPY configs/ /app/configs/
 COPY app/ /app/app/
 COPY scripts/ /app/scripts/
 
-# Create necessary directories
-RUN mkdir -p /app/outputs /app/data/splits
+# Create necessary runtime directories
+RUN mkdir -p /app/outputs /app/data/splits /app/.cache/torch
+
+# Pre-cache DINOv2 from torch.hub so the container starts immediately offline
+RUN python -c "import torch; torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14', pretrained=True)"
 
 # Expose Gradio default port
 EXPOSE 7860
