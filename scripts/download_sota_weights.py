@@ -34,7 +34,7 @@ def main() -> None:
     processor.save_pretrained(save_path)
     model.save_pretrained(save_path)
 
-    # Save project-compatible config
+    # Save project-compatible config with cross-platform relative path
     config_data = {
         "experiment": {
             "name": "sota_vit_detector",
@@ -43,7 +43,7 @@ def main() -> None:
         "model": {
             "backbone": "hf_vit_base",
             "type": "hf_transformers",
-            "model_path": str(save_path),
+            "model_path": "outputs/sota_vit_detector/model",
             "pretrained": True,
             "num_classes": 2,
         },
