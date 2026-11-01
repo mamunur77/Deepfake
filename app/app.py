@@ -453,8 +453,8 @@ def build_gradio_app() -> gr.Blocks:
             """
         )
 
-        # Model Status Bar
-        with gr.Accordion("⚙️ Model Architecture & Inference Settings", open=False):
+        # Model Status Bar & Sensitivity Settings
+        with gr.Accordion("⚙️ Model Architecture & Sensitivity Threshold", open=True):
             with gr.Row():
                 model_dropdown = gr.Dropdown(
                     label="Backbone Architecture",
@@ -469,11 +469,12 @@ def build_gradio_app() -> gr.Blocks:
                     interactive=True,
                 )
                 threshold_slider = gr.Slider(
-                    minimum=0.1,
-                    maximum=0.9,
-                    value=0.5,
+                    minimum=0.05,
+                    maximum=0.95,
+                    value=0.50,
                     step=0.05,
-                    label="Classification Threshold P(Fake)",
+                    label="Fake Detection Threshold P(Fake >= Threshold)",
+                    info="Lower values (e.g. 0.25-0.40) increase sensitivity to subtle/compressed deepfakes.",
                 )
                 model_status_text = gr.Textbox(
                     label="Current Status",

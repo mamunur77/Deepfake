@@ -165,8 +165,17 @@ class Trainer:
         if getattr(t_cfg, "gradient_checkpointing", False):
             self._enable_gradient_checkpointing()
 
-        # Build loss function with positive class weighting
-        self.criterion = get_loss_fn(class_weights=class_weights, device=self.device)
+        # Build loss function with positive class weighting and optional Focal Loss
+        loss_type = getattr(t_cfg, "loss_type", "bce")
+        label_smoothing = float(getattr(t_cfg, "label_smoothing", 0.0))
+        focal_gamma = float(getattr(t_cfg, "focal_gamma", 2.0))
+        self.criterion = get_loss_fn(
+            loss_type=loss_type,
+            class_weights=class_weights,
+            device=self.device,
+            label_smoothing=label_smoothing,
+            focal_gamma=focal_gamma,
+        )
 
         # Optimizer: AdamW
         trainable_params = [p for p in self.model.parameters() if p.requires_grad]

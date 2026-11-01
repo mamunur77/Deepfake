@@ -65,12 +65,21 @@ class DINOv2Classifier(nn.Module):
         Feature embedding dimension (384 for ViT-S, 768 for ViT-B).
     drop_rate : float, default=0.1
         Dropout probability before the linear projection.
+    normalize_features : bool, default=False
+        Whether to apply L2 normalization to backbone embeddings before head.
     """
 
-    def __init__(self, backbone: nn.Module, embed_dim: int, drop_rate: float = 0.1) -> None:
+    def __init__(
+        self,
+        backbone: nn.Module,
+        embed_dim: int,
+        drop_rate: float = 0.1,
+        normalize_features: bool = False,
+    ) -> None:
         super().__init__()
         self.backbone = backbone
         self.embed_dim = embed_dim
+        self.normalize_features = normalize_features
         self.head = nn.Sequential(
             nn.Dropout(p=drop_rate) if drop_rate > 0.0 else nn.Identity(),
             nn.Linear(embed_dim, 1),
@@ -105,6 +114,8 @@ class DINOv2Classifier(nn.Module):
             Single logit output with shape (B, 1).
         """
         feat = self.backbone(x)  # (B, embed_dim)
+        if self.normalize_features:
+            feat = nn.functional.normalize(feat, p=2, dim=-1)
         logits = self.head(feat)  # (B, 1)
         return logits
 
@@ -272,8 +283,9 @@ def build_model(cfg: Any = None, **kwargs) -> nn.Module:
     mode: str = _get("mode", "finetune")
     unfreeze_blocks: int = _get("unfreeze_blocks", 2)
     drop_rate: float = _get("drop_rate", 0.1)
+    normalize_features: bool = _get("normalize_features", False)
 
-    print(f"\n[build_model] Building backbone: '{backbone_name}' | Pretrained: {pretrained} | Mode: '{mode}'")
+    print(f"\n[build_model] Building backbone: '{backbone_name}' | Pretrained: {pretrained} | Mode: '{mode}' | NormFeat: {normalize_features}")
 
     # 1. DINOv2 Models (facebookresearch/dinov2 via torch.hub)
     if backbone_name in DINOV2_MODELS:
@@ -283,7 +295,12 @@ def build_model(cfg: Any = None, **kwargs) -> nn.Module:
             pretrained=pretrained,
         )
         embed_dim = getattr(backbone, "embed_dim", 384 if "vits" in backbone_name else 768)
-        model = DINOv2Classifier(backbone=backbone, embed_dim=embed_dim, drop_rate=drop_rate)
+        model = DINOv2Classifier(
+            backbone=backbone,
+            embed_dim=embed_dim,
+            drop_rate=drop_rate,
+            normalize_features=normalize_features,
+        )
 
     # 2. timm Backbones (ViT-B/16, DeiT-S/16, EfficientNet-B0, etc.)
     else:
