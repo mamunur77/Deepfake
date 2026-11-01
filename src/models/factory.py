@@ -45,6 +45,8 @@ SUPPORTED_BACKBONES = {
     "dinov2_vits14",
     "dinov2_vitb14",
     "efficientnet_b0",
+    "sota_vit_detector",
+    "hf_vit_base",
 }
 
 
@@ -118,6 +120,44 @@ class DINOv2Classifier(nn.Module):
             feat = nn.functional.normalize(feat, p=2, dim=-1)
         logits = self.head(feat)  # (B, 1)
         return logits
+
+
+# ═════════════════════════════════════════════════════════════════
+#  Hugging Face ViT Classifier Wrapper
+# ═════════════════════════════════════════════════════════════════
+
+class HuggingFaceViTClassifier(nn.Module):
+    """
+    Wraps Hugging Face ViTForImageClassification models.
+    Produces a single logit representing binary classification Real (0) vs Fake (1)
+    by computing: logit = logit[Fake] - logit[Real].
+    """
+
+    def __init__(self, hf_model: nn.Module) -> None:
+        super().__init__()
+        self.hf_model = hf_model
+
+    @property
+    def blocks(self) -> nn.ModuleList | None:
+        """Expose encoder layers for Grad-CAM."""
+        if hasattr(self.hf_model, "vit") and hasattr(self.hf_model.vit, "encoder"):
+            return self.hf_model.vit.encoder.layer
+        return None
+
+    @property
+    def norm(self) -> nn.Module | None:
+        """Expose layer norm for Grad-CAM."""
+        if hasattr(self.hf_model, "vit") and hasattr(self.hf_model.vit, "layernorm"):
+            return self.hf_model.vit.layernorm
+        return None
+
+    def get_classifier(self) -> nn.Module:
+        return getattr(self.hf_model, "classifier", self.hf_model)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = self.hf_model(pixel_values=x)
+        fake_logit = (out.logits[:, 1] - out.logits[:, 0]).unsqueeze(1)
+        return fake_logit
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -287,7 +327,27 @@ def build_model(cfg: Any = None, **kwargs) -> nn.Module:
 
     print(f"\n[build_model] Building backbone: '{backbone_name}' | Pretrained: {pretrained} | Mode: '{mode}' | NormFeat: {normalize_features}")
 
-    # 1. DINOv2 Models (facebookresearch/dinov2 via torch.hub)
+    # 1. Hugging Face SOTA Pretrained ViT Detector
+    if backbone_name in {"sota_vit_detector", "hf_vit_base"} or _get("type", "") == "hf_transformers":
+        from pathlib import Path
+        from transformers import AutoModelForImageClassification
+        model_path = _get("model_path", None)
+        if not model_path or not Path(model_path).exists():
+            cand_paths = [
+                Path("outputs/sota_vit_detector/model"),
+                Path(__file__).resolve().parent.parent.parent / "outputs" / "sota_vit_detector" / "model",
+            ]
+            for cp in cand_paths:
+                if cp.exists():
+                    model_path = str(cp)
+                    break
+            if not model_path:
+                model_path = "dima806/deepfake_vs_real_image_detection"
+        hf_model = AutoModelForImageClassification.from_pretrained(model_path)
+        model = HuggingFaceViTClassifier(hf_model)
+        return model
+
+    # 2. DINOv2 Models (facebookresearch/dinov2 via torch.hub)
     if backbone_name in DINOV2_MODELS:
         backbone = torch.hub.load(
             "facebookresearch/dinov2",

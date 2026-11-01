@@ -86,11 +86,13 @@ def get_gradcam_target_layer(model: nn.Module) -> list[nn.Module]:
     if hasattr(model, "backbone") and hasattr(model.backbone, "blocks"):
         return [model.backbone.blocks[-1].norm1]
 
-    # 2. timm Vision Transformers (ViT, DeiT)
-    if hasattr(model, "blocks") and len(model.blocks) > 0:
+    # 2. Vision Transformers (timm ViT, DeiT, HF ViT)
+    if hasattr(model, "blocks") and model.blocks is not None and len(model.blocks) > 0:
         last_block = model.blocks[-1]
         if hasattr(last_block, "norm1"):
             return [last_block.norm1]
+        if hasattr(last_block, "layernorm_before"):
+            return [last_block.layernorm_before]
         return [last_block]
 
     # 3. EfficientNet / CNNs

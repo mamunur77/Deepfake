@@ -74,16 +74,23 @@ class AppState:
     def load_active_model(
         self,
         checkpoint_path: str | Path | None = None,
-        backbone: str = "dinov2_vits14",
+        backbone: str = "sota_vit_detector",
     ) -> tuple[nn.Module, str]:
         """Load requested model checkpoint or initialize backbone."""
+        clean_backbone = backbone.split()[0]
+
         # 1. Resolve checkpoint path
         cand_paths = []
         if checkpoint_path:
             cand_paths.append(Path(checkpoint_path))
+
+        if clean_backbone == "sota_vit_detector":
+            cand_paths.append(PROJECT_ROOT / "outputs" / "sota_vit_detector" / "model")
+
         cand_paths.extend([
-            PROJECT_ROOT / "outputs" / "dinov2_partial" / "best_model.pt",
+            PROJECT_ROOT / "outputs" / "sota_vit_detector" / "model",
             PROJECT_ROOT / "outputs" / "dinov2_frozen" / "best_model.pt",
+            PROJECT_ROOT / "outputs" / "dinov2_partial" / "best_model.pt",
             PROJECT_ROOT / "outputs" / "deit_small_finetune" / "best_model.pt",
             PROJECT_ROOT / "outputs" / "efficientnet_b0" / "best_model.pt",
             PROJECT_ROOT / "outputs" / "video_dinov2_cached" / "best_model.pt",
@@ -105,7 +112,7 @@ class AppState:
             cfg = load_config(PROJECT_ROOT / "configs" / "default.yaml")
 
         self.cfg = cfg
-        bb = getattr(getattr(cfg, "model", None), "backbone", backbone)
+        bb = clean_backbone if clean_backbone == "sota_vit_detector" else getattr(getattr(cfg, "model", None), "backbone", clean_backbone)
         model_type = getattr(getattr(cfg, "model", None), "type", "image")
 
         print(f"[app] Loading model '{bb}' (ckpt: {found_ckpt}) on {self.device}...")
@@ -120,13 +127,15 @@ class AppState:
                 mode=getattr(getattr(cfg, "model", None), "mode", "finetune"),
             ).to(self.device)
 
-        if found_ckpt and found_ckpt.exists():
+        if found_ckpt and found_ckpt.is_file():
             try:
                 state_dict = torch.load(found_ckpt, map_location=self.device)
                 model.load_state_dict(state_dict)
                 status = f"Loaded checkpoint: {found_ckpt.name} ({bb})"
             except Exception as e:
                 status = f"Pretrained weights ({bb}) [Checkpoint load notice: {e}]"
+        elif found_ckpt and found_ckpt.is_dir():
+            status = f"Loaded SOTA ViT Pretrained Weights ({bb})"
         else:
             status = f"Pretrained base weights ({bb}) [No fine-tuned checkpoint found]"
 
@@ -459,13 +468,14 @@ def build_gradio_app() -> gr.Blocks:
                 model_dropdown = gr.Dropdown(
                     label="Backbone Architecture",
                     choices=[
+                        "sota_vit_detector (Recommended SOTA)",
                         "dinov2_vitb14",
                         "dinov2_vits14",
                         "deit_small_patch16_224",
                         "vit_base_patch16_224",
                         "efficientnet_b0",
                     ],
-                    value="dinov2_vitb14",
+                    value="sota_vit_detector (Recommended SOTA)",
                     interactive=True,
                 )
                 threshold_slider = gr.Slider(
