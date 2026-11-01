@@ -156,11 +156,13 @@ app_state = AppState(device="cpu")
 def predict_single_image(
     input_image: Image.Image | np.ndarray | None,
     threshold: float = 0.5,
+    auto_crop: bool = True,
+    margin_pct: int = 70,
 ) -> tuple[str, dict[str, float] | None, Image.Image | None, Image.Image | None, Image.Image | None]:
     """
     Execute full inference pipeline for one image:
-        1. MTCNN Face Detection
-        2. Albumentations Preprocessing
+        1. MTCNN Face Detection with broad context margin (hair/ears/neck)
+        2. Normalization & Preprocessing
         3. Model Forward Pass
         4. Grad-CAM & Attention Rollout heatmaps
     """
@@ -179,22 +181,22 @@ def predict_single_image(
     else:
         img_pil = input_image.convert("RGB")
 
-    # 1. MTCNN Face Detection with 20% margin
-    face_crop = detect_and_crop_face(
-        image=img_pil,
-        mtcnn=app_state.mtcnn,
-        margin_pct=20,
-        output_size=224,
-    )
+    # 1. MTCNN Face Detection or Direct Full-Frame
+    face_crop = None
+    if auto_crop:
+        try:
+            face_crop = detect_and_crop_face(
+                image=img_pil,
+                mtcnn=app_state.mtcnn,
+                margin_pct=int(margin_pct),
+                output_size=224,
+            )
+        except Exception:
+            face_crop = None
 
+    # Fallback to direct resize if MTCNN didn't detect a face or auto_crop is False
     if face_crop is None:
-        error_html = (
-            "<div style='padding: 16px; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 8px; color: #c53030; font-weight: 600;'>"
-            "⚠️ No Face Detected: MTCNN could not locate a human face in the uploaded image.<br>"
-            "<span style='font-size: 0.85em; font-weight: normal; color: #742a2a;'>"
-            "Please ensure the image contains a clear, unobstructed facial region.</span></div>"
-        )
-        return error_html, None, None, None, None
+        face_crop = img_pil.resize((224, 224), Image.LANCZOS)
 
     # 2. Preprocess
     face_rgb = np.array(face_crop)
@@ -501,6 +503,9 @@ def build_gradio_app() -> gr.Blocks:
                         type="pil",
                         sources=["upload", "clipboard", "webcam"],
                     )
+                    with gr.Row():
+                        image_autocrop_cb = gr.Checkbox(label="Auto-Crop Face (MTCNN)", value=True)
+                        image_margin_slider = gr.Slider(minimum=20, maximum=100, value=70, step=5, label="Head Context Margin (%)")
                     image_analyze_btn = gr.Button("🔍 Analyze Image", variant="primary", size="lg")
 
                 with gr.Column(scale=7):
@@ -508,14 +513,14 @@ def build_gradio_app() -> gr.Blocks:
                     image_label_output = gr.Label(label="Class Probability", num_top_classes=2)
 
                     with gr.Row():
-                        image_crop_output = gr.Image(label="MTCNN Face Crop (224x224)", type="pil")
+                        image_crop_output = gr.Image(label="Processed Face Crop / Frame (224x224)", type="pil")
                         image_cam_output = gr.Image(label="Grad-CAM Heatmap Overlay", type="pil")
                         image_rollout_output = gr.Image(label="Attention Rollout (ViT)", type="pil")
 
             # Connect Image Events
             image_analyze_btn.click(
                 fn=predict_single_image,
-                inputs=[image_input, threshold_slider],
+                inputs=[image_input, threshold_slider, image_autocrop_cb, image_margin_slider],
                 outputs=[
                     image_verdict_box,
                     image_label_output,
